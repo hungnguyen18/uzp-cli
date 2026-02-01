@@ -81,10 +81,13 @@ func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// HashPassword creates a SHA-256 hash of the password for verification
-func HashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return base64.StdEncoding.EncodeToString(hash[:])
+// HashPassword creates a computationally expensive hash of the password for verification
+func HashPassword(password string, salt []byte) (string, error) {
+	hash, err := scrypt.Key([]byte(password), salt, scryptN, scryptR, scryptP, keySize)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(hash), nil
 }
 
 // HashData creates a SHA-256 hash of arbitrary data
