@@ -66,11 +66,17 @@ func (v *Vault) Initialize(masterPassword string) error {
 		return err
 	}
 
+	// Hash password for verification
+	hash, err := crypto.HashPassword(masterPassword, salt)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
 	// Create initial vault data
 	v.data = &VaultData{
 		Version:  1,
 		Salt:     base64.StdEncoding.EncodeToString(salt),
-		Hash:     crypto.HashPassword(masterPassword),
+		Hash:     hash,
 		Projects: make(map[string]map[string]string),
 	}
 
@@ -89,15 +95,19 @@ func (v *Vault) Unlock(masterPassword string) error {
 		return err
 	}
 
-	// Verify password hash
-	if crypto.HashPassword(masterPassword) != encVault.Hash {
-		return fmt.Errorf("invalid master password")
-	}
-
 	// Decode salt
 	salt, err := base64.StdEncoding.DecodeString(encVault.Salt)
 	if err != nil {
 		return fmt.Errorf("failed to decode salt: %w", err)
+	}
+
+	// Verify password hash
+	hash, err := crypto.HashPassword(masterPassword, salt)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+	if hash != encVault.Hash {
+		return fmt.Errorf("invalid master password")
 	}
 
 	// Derive key
