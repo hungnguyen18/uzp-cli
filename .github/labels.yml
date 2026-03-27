@@ -15,23 +15,7 @@
   color: "ff0000"
   description: "Security-related issue or enhancement"
 
-- name: "performance"
-  color: "ff9500"
-  description: "Performance improvement"
-
-- name: "refactor"
-  color: "fbca04"
-  description: "Code refactoring without functional changes"
-
-# Priority Levels
-- name: "priority: low"
-  color: "0e8a16"
-  description: "Low priority issue"
-
-- name: "priority: medium"
-  color: "fbca04"
-  description: "Medium priority issue"
-
+# Priority
 - name: "priority: high"
   color: "ff9500"
   description: "High priority issue"
@@ -40,32 +24,15 @@
   color: "d73a4a"
   description: "Critical priority issue"
 
-# Status Labels
-- name: "needs-triage"
-  color: "ededed"
-  description: "Needs initial review and categorization"
+# Triage
+- name: "good-first-issue"
+  color: "7057ff"
+  description: "Good for newcomers"
 
-- name: "needs-reproduction"
-  color: "fef2c0"
-  description: "Bug report needs reproduction steps"
+- name: "help-wanted"
+  color: "008672"
+  description: "Extra attention is needed"
 
-- name: "needs-info"
-  color: "d876e3"
-  description: "More information needed"
-
-- name: "ready-for-review"
-  color: "0075ca"
-  description: "Ready for maintainer review"
-
-- name: "work-in-progress"
-  color: "fbca04"
-  description: "Currently being worked on"
-
-- name: "blocked"
-  color: "b60205"
-  description: "Blocked by another issue or external dependency"
-
-# Resolution Status
 - name: "duplicate"
   color: "cfd3d7"
   description: "This issue or pull request already exists"
@@ -74,57 +41,7 @@
   color: "ffffff"
   description: "This will not be worked on"
 
-- name: "invalid"
-  color: "e4e669"
-  description: "This doesn't seem right"
-
-- name: "help-wanted"
-  color: "008672"
-  description: "Extra attention is needed"
-
-- name: "good-first-issue"
-  color: "7057ff"
-  description: "Good for newcomers"
-
-# Component Labels
-- name: "cli"
-  color: "1f77b4"
-  description: "Command line interface"
-
-- name: "crypto"
-  color: "ff7f0e"
-  description: "Cryptographic functionality"
-
-- name: "storage"
-  color: "2ca02c"
-  description: "Storage and vault functionality"
-
-- name: "config"
-  color: "d62728"
-  description: "Configuration management"
-
-- name: "build"
-  color: "9467bd"
-  description: "Build system and packaging"
-
-- name: "ci/cd"
-  color: "8c564b"
-  description: "Continuous integration and deployment"
-
-# Platform Labels
-- name: "platform: linux"
-  color: "1f77b4"
-  description: "Linux-specific issue"
-
-- name: "platform: macos"
-  color: "ff7f0e"
-  description: "macOS-specific issue"
-
-- name: "platform: windows"
-  color: "2ca02c"
-  description: "Windows-specific issue"
-
-# Special Labels
+# Special
 - name: "breaking-change"
   color: "b60205"
   description: "Introduces breaking changes"
@@ -132,24 +49,3 @@
 - name: "dependencies"
   color: "0366d6"
   description: "Pull requests that update a dependency file"
-
-- name: "sponsor"
-  color: "ea4aaa"
-  description: "Issues/PRs from sponsors"
-
-- name: "maintainer-only"
-  color: "000000"
-  description: "Only maintainers can work on this"
-
-# Release Management
-- name: "release: patch"
-  color: "28a745"
-  description: "Patch release (bug fixes)"
-
-- name: "release: minor"
-  color: "ffc107"
-  description: "Minor release (new features)"
-
-- name: "release: major"
-  color: "dc3545"
-  description: "Major release (breaking changes)" 

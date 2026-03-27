@@ -13,59 +13,34 @@ jobs:
   setup-labels:
     name: Setup Repository Labels
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Labels
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Define labels for automated review
             const labels = [
-              // Review Status Labels
-              { name: 'auto-review-complete', color: '0e8a16', description: 'Automated review completed successfully' },
-              { name: 'needs-human-review', color: 'fbca04', description: 'Requires human reviewer attention' },
+              // Review gates (used by CODEOWNERS and branch protection)
               { name: 'security-review-required', color: 'd73a4a', description: 'Security-critical changes need owner review' },
               { name: 'needs-owner-review', color: 'b60205', description: 'Changes require repository owner review' },
-              
-              // Review Types
-              { name: 'review: security', color: 'ff0000', description: 'Security-focused review needed' },
-              { name: 'review: performance', color: 'ff9500', description: 'Performance review needed' },
-              { name: 'review: breaking-change', color: 'b60205', description: 'Breaking changes review needed' },
-              { name: 'review: documentation', color: '0075ca', description: 'Documentation review needed' },
-              
-              // Automated Review Results
-              { name: 'bot: approved', color: '0e8a16', description: 'Automated review passed all checks' },
-              { name: 'bot: issues-found', color: 'ff9500', description: 'Automated review found issues' },
-              { name: 'bot: security-alert', color: 'd73a4a', description: 'Automated review found security issues' },
-              
-              // Contributor Experience
-              { name: 'welcome-contributor', color: '7057ff', description: 'First-time contributor welcome' },
-              { name: 'mentor-available', color: '008672', description: 'Mentor available to help' },
-              { name: 'needs-feedback', color: 'd876e3', description: 'Waiting for contributor feedback' },
-              
-              // AI Review Labels
-              { name: 'copilot-reviewed', color: '0366d6', description: 'GitHub Copilot has reviewed this PR' },
-              { name: 'ai-suggestions', color: '5319e7', description: 'AI provided improvement suggestions' },
+              { name: 'ready-to-merge', color: '0e8a16', description: 'Approved and ready to merge' },
             ];
-            
-            // Get existing labels
+
             const { data: existingLabels } = await github.rest.issues.listLabelsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100
             });
-            
+
             const existingLabelNames = existingLabels.map(label => label.name);
-            
-            // Create or update labels
+
             for (const label of labels) {
               try {
                 if (existingLabelNames.includes(label.name)) {
-                  // Update existing label
                   await github.rest.issues.updateLabel({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -73,9 +48,8 @@ jobs:
                     color: label.color,
                     description: label.description
                   });
-                  console.log(`✅ Updated label: ${label.name}`);
+                  console.log(`Updated label: ${label.name}`);
                 } else {
-                  // Create new label
                   await github.rest.issues.createLabel({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -83,11 +57,11 @@ jobs:
                     color: label.color,
                     description: label.description
                   });
-                  console.log(`🆕 Created label: ${label.name}`);
+                  console.log(`Created label: ${label.name}`);
                 }
               } catch (error) {
-                console.log(`❌ Failed to process label ${label.name}:`, error.message);
+                console.log(`Failed to process label ${label.name}:`, error.message);
               }
             }
-            
-            console.log('🎉 Label setup completed!'); 
+
+            console.log('Label setup completed.');

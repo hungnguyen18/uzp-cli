@@ -156,46 +156,6 @@ jobs:
           echo "Release notes generated:"
           cat changelog.md
       
-      - name: Request Copilot Analysis
-        uses: actions/github-script@v6
-        with:
-          script: |
-            // Create a comment asking Copilot to analyze the release
-            const { owner, repo } = context.repo;
-            const version = "${{ needs.build-binaries.outputs.version }}";
-            
-            const body = `@github-copilot Please analyze the changes for UZP v${version} and categorize them:
-            
-            ## Changes to analyze:
-            Based on the commits and PRs included in this release, please provide:
-            
-            ### 🚀 New Features
-            List any new functionality added
-            
-            ### 🐛 Bug Fixes  
-            List any bugs that were fixed
-            
-            ### ⚡ Performance Improvements
-            List any performance optimizations
-            
-            ### 🔒 Security Updates
-            List any security-related changes
-            
-            ### 💥 Breaking Changes
-            List any breaking changes (if any)
-            
-            ### 📚 Documentation
-            List documentation updates
-            
-            ### 🧹 Other Changes
-            List other minor changes, refactoring, etc.
-            
-            Please format this as markdown and focus on user-facing changes.`;
-            
-            // This will create a comment that triggers Copilot analysis
-            console.log("Copilot analysis requested for release notes generation");
-            console.log(body);
-      
       - name: Create GitHub Release
         id: create-release
         uses: softprops/action-gh-release@v1
