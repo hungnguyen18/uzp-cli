@@ -19,3 +19,17 @@ func ConvertToEnvKey(key string) string {
 
 	return string(result)
 }
+
+// MergeSecrets merges secrets from multiple projects into a flat map of ENV_KEY=value.
+// Projects are applied left-to-right: later projects override earlier ones on key collision.
+// Key names are converted to UPPER_SNAKE_CASE via ConvertToEnvKey.
+func MergeSecrets(projects []map[string]string) map[string]string {
+	result := make(map[string]string)
+	for _, secrets := range projects {
+		for key, value := range secrets {
+			envKey := ConvertToEnvKey(key)
+			result[envKey] = value
+		}
+	}
+	return result
+}
