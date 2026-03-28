@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hungnguyen18/uzp-cli/internal/envutil"
 	"github.com/spf13/cobra"
 )
 
@@ -71,7 +72,7 @@ NOTE:
 
 		for _, key := range keys {
 			// Convert key to uppercase and replace non-alphanumeric chars with underscore
-			envKey := convertToEnvKey(key)
+			envKey := envutil.ConvertToEnvKey(key)
 			// Single-quote values to prevent shell injection when sourced/eval'd.
 			// Embedded single quotes are escaped with the POSIX '\'' pattern.
 			safeValue := strings.ReplaceAll(secrets[key], "'", "'\\''")
@@ -89,23 +90,3 @@ func init() {
 	injectCmd.Flags().StringVarP(&projectName, "project", "p", "", "Project name to export secrets from")
 }
 
-// convertToEnvKey converts a key to environment variable format
-func convertToEnvKey(key string) string {
-	result := make([]byte, 0, len(key))
-
-	for i := 0; i < len(key); i++ {
-		c := key[i]
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
-			// Convert to uppercase if lowercase
-			if c >= 'a' && c <= 'z' {
-				c = c - 32
-			}
-			result = append(result, c)
-		} else {
-			// Replace non-alphanumeric with underscore
-			result = append(result, '_')
-		}
-	}
-
-	return string(result)
-}
