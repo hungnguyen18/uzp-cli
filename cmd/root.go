@@ -34,6 +34,7 @@ BASIC USAGE:
   uzp inject -p project       Export as environment variables
   uzp run -p project -- cmd    Run command with secrets injected
   uzp import .env -p project   Import from .env file
+  uzp mcp                       Start MCP server for AI agents
 
 EXAMPLES:
   uzp inject -p myapp > .env  Export secrets to .env file
