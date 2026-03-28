@@ -32,11 +32,13 @@ BASIC USAGE:
   uzp get project/key         Get secret value
   uzp update project/key      Update secret
   uzp inject -p project       Export as environment variables
+  uzp run -p project -- cmd    Run command with secrets injected
 
 EXAMPLES:
   uzp inject -p myapp > .env  Export secrets to .env file
   uzp copy myapp/api_key      Copy secret to clipboard
   uzp search database         Search for secrets
+  uzp run -p myapp -- npm start Run with injected secrets
 
 STORAGE: ~/.uzp/uzp.vault (encrypted)`,
 		Run: func(cmd *cobra.Command, args []string) {
