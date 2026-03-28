@@ -72,6 +72,7 @@ func init() {
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(injectCmd)
 	rootCmd.AddCommand(resetCmd)
+	rootCmd.AddCommand(runCmd)
 }
 
 // Execute runs the root command
