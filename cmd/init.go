@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"syscall"
 
@@ -43,22 +44,44 @@ STORAGE:
 		fmt.Print("Confirm master password: ")
 		confirmPassword, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
+			// Clear first password before returning
+			for i := range password {
+				password[i] = 0
+			}
 			return fmt.Errorf("failed to read password: %w", err)
 		}
 		fmt.Println() // New line after password
 
-		// Check if passwords match
-		if string(password) != string(confirmPassword) {
+		// Check if passwords match (constant-time comparison)
+		if subtle.ConstantTimeCompare(password, confirmPassword) != 1 {
+			// Clear passwords from memory before returning
+			for i := range password {
+				password[i] = 0
+			}
+			for i := range confirmPassword {
+				confirmPassword[i] = 0
+			}
 			return fmt.Errorf("passwords do not match")
+		}
+
+		// Clear confirmation password immediately — no longer needed
+		for i := range confirmPassword {
+			confirmPassword[i] = 0
 		}
 
 		// Check password strength
 		if len(password) < 8 {
+			for i := range password {
+				password[i] = 0
+			}
 			return fmt.Errorf("password must be at least 8 characters long")
 		}
 
-		// Initialize vault
-		if err := vault.Initialize(string(password)); err != nil {
+		// Initialize vault — pass []byte directly, no string conversion
+		if err := vault.Initialize(password); err != nil {
+			for i := range password {
+				password[i] = 0
+			}
 			return fmt.Errorf("failed to initialize vault: %w", err)
 		}
 
@@ -68,9 +91,6 @@ STORAGE:
 		// Clear password from memory
 		for i := range password {
 			password[i] = 0
-		}
-		for i := range confirmPassword {
-			confirmPassword[i] = 0
 		}
 
 		return nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -71,7 +72,10 @@ NOTE:
 		for _, key := range keys {
 			// Convert key to uppercase and replace non-alphanumeric chars with underscore
 			envKey := convertToEnvKey(key)
-			fmt.Printf("%s=%s\n", envKey, secrets[key])
+			// Single-quote values to prevent shell injection when sourced/eval'd.
+			// Embedded single quotes are escaped with the POSIX '\'' pattern.
+			safeValue := strings.ReplaceAll(secrets[key], "'", "'\\''")
+			fmt.Printf("%s='%s'\n", envKey, safeValue)
 		}
 
 		// Success message to stderr

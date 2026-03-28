@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -15,15 +15,17 @@ import (
 const (
 	saltSize  = 32
 	keySize   = 32 // AES-256
+	hashSize  = 32 // Separate size for password hash to domain-separate from key
 	nonceSize = 12 // GCM standard nonce size
 	scryptN   = 32768
 	scryptR   = 8
 	scryptP   = 1
 )
 
-// DeriveKey derives an encryption key from a password using scrypt
-func DeriveKey(password string, salt []byte) ([]byte, error) {
-	return scrypt.Key([]byte(password), salt, scryptN, scryptR, scryptP, keySize)
+// DeriveKey derives an encryption key from a password using scrypt.
+// Password is accepted as []byte so the caller can zero it after use.
+func DeriveKey(password []byte, salt []byte) ([]byte, error) {
+	return scrypt.Key(password, salt, scryptN, scryptR, scryptP, keySize)
 }
 
 // GenerateSalt generates a random salt
@@ -81,17 +83,25 @@ func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// HashPassword creates a computationally expensive hash of the password for verification
-func HashPassword(password string, salt []byte) (string, error) {
-	hash, err := scrypt.Key([]byte(password), salt, scryptN, scryptR, scryptP, keySize)
+// HashPassword creates a domain-separated scrypt hash of the password for verification.
+// Uses hashSize (different from keySize) to ensure the hash output differs from DeriveKey
+// even with the same password and salt, preventing a single scrypt call from producing both.
+// Password is accepted as []byte so the caller can zero it after use.
+func HashPassword(password []byte, salt []byte) (string, error) {
+	hash, err := scrypt.Key(password, salt, scryptN, scryptR, scryptP, keySize+hashSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
-	return base64.StdEncoding.EncodeToString(hash), nil
+	// Use only the second half (domain separation from DeriveKey which uses first keySize bytes)
+	return base64.StdEncoding.EncodeToString(hash[keySize:]), nil
 }
 
-// HashData creates a SHA-256 hash of arbitrary data
-func HashData(data []byte) string {
-	hash := sha256.Sum256(data)
-	return base64.StdEncoding.EncodeToString(hash[:])
+// ConstantTimeHashEqual compares two base64-encoded hashes in constant time.
+func ConstantTimeHashEqual(a, b string) bool {
+	aBytes, aErr := base64.StdEncoding.DecodeString(a)
+	bBytes, bErr := base64.StdEncoding.DecodeString(b)
+	if aErr != nil || bErr != nil {
+		return false
+	}
+	return subtle.ConstantTimeCompare(aBytes, bBytes) == 1
 }

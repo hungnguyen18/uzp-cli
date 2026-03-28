@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/hungnguyen18/uzp-cli/internal/storage"
 	"github.com/spf13/cobra"
@@ -54,7 +55,12 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Print version information")
 
 	// Initialize vault instance
-	vault = storage.NewVault()
+	var err error
+	vault, err = storage.NewVault()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Add all subcommands
 	rootCmd.AddCommand(initCmd)

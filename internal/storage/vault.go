@@ -6,8 +6,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hungnguyen18/uzp-cli/internal/crypto"
+)
+
+const (
+	maxProjectNameLen = 255
+	maxKeyNameLen     = 255
+	maxValueLen       = 65536 // 64 KB
 )
 
 type VaultData struct {
@@ -31,18 +38,23 @@ type Vault struct {
 }
 
 // NewVault creates a new vault instance
-func NewVault() *Vault {
-	homeDir, _ := os.UserHomeDir()
+func NewVault() (*Vault, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine home directory: %w", err)
+	}
+
 	vaultDir := filepath.Join(homeDir, ".uzp")
 	vaultPath := filepath.Join(vaultDir, "uzp.vault")
 
 	return &Vault{
 		path: vaultPath,
-	}
+	}, nil
 }
 
-// Initialize creates a new vault with the given master password
-func (v *Vault) Initialize(masterPassword string) error {
+// Initialize creates a new vault with the given master password.
+// Password is accepted as []byte so the caller can zero it after use.
+func (v *Vault) Initialize(masterPassword []byte) error {
 	// Create vault directory if not exists
 	dir := filepath.Dir(v.path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -66,7 +78,7 @@ func (v *Vault) Initialize(masterPassword string) error {
 		return err
 	}
 
-	// Hash password for verification
+	// Hash password for verification (domain-separated from key derivation)
 	hash, err := crypto.HashPassword(masterPassword, salt)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
@@ -87,8 +99,9 @@ func (v *Vault) Initialize(masterPassword string) error {
 	return v.save()
 }
 
-// Unlock unlocks the vault with the master password
-func (v *Vault) Unlock(masterPassword string) error {
+// Unlock unlocks the vault with the master password.
+// Password is accepted as []byte so the caller can zero it after use.
+func (v *Vault) Unlock(masterPassword []byte) error {
 	// Load encrypted vault
 	encVault, err := v.loadEncrypted()
 	if err != nil {
@@ -101,12 +114,12 @@ func (v *Vault) Unlock(masterPassword string) error {
 		return fmt.Errorf("failed to decode salt: %w", err)
 	}
 
-	// Verify password hash
+	// Verify password hash (constant-time comparison)
 	hash, err := crypto.HashPassword(masterPassword, salt)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
-	if hash != encVault.Hash {
+	if !crypto.ConstantTimeHashEqual(hash, encVault.Hash) {
 		return fmt.Errorf("invalid master password")
 	}
 
@@ -158,10 +171,20 @@ func (v *Vault) IsUnlocked() bool {
 	return v.unlocked
 }
 
-// Add adds a secret to the vault
+// Add adds a secret to the vault with input length validation
 func (v *Vault) Add(project, key, value string) error {
 	if !v.unlocked {
 		return fmt.Errorf("vault is locked")
+	}
+
+	if len(project) > maxProjectNameLen {
+		return fmt.Errorf("project name exceeds maximum length of %d bytes", maxProjectNameLen)
+	}
+	if len(key) > maxKeyNameLen {
+		return fmt.Errorf("key name exceeds maximum length of %d bytes", maxKeyNameLen)
+	}
+	if len(value) > maxValueLen {
+		return fmt.Errorf("value exceeds maximum length of %d bytes", maxValueLen)
 	}
 
 	if v.data.Projects[project] == nil {
@@ -205,17 +228,19 @@ func (v *Vault) List() (map[string][]string, error) {
 	return result, nil
 }
 
-// Search searches for keys or projects containing the keyword
+// Search searches for keys or projects containing the keyword (case-insensitive, Unicode-safe)
 func (v *Vault) Search(keyword string) (map[string][]string, error) {
 	if !v.unlocked {
 		return nil, fmt.Errorf("vault is locked")
 	}
 
+	lowerKeyword := strings.ToLower(keyword)
 	result := make(map[string][]string)
 	for project, secrets := range v.data.Projects {
 		matches := []string{}
+		lowerProject := strings.ToLower(project)
 		for key := range secrets {
-			if contains(project, keyword) || contains(key, keyword) {
+			if strings.Contains(lowerProject, lowerKeyword) || strings.Contains(strings.ToLower(key), lowerKeyword) {
 				matches = append(matches, key)
 			}
 		}
@@ -264,7 +289,7 @@ func (v *Vault) Reset() error {
 	return nil
 }
 
-// save saves the vault to disk
+// save saves the vault to disk atomically (write to temp file, then rename)
 func (v *Vault) save() error {
 	if !v.unlocked {
 		return fmt.Errorf("vault is locked")
@@ -295,8 +320,46 @@ func (v *Vault) save() error {
 		return fmt.Errorf("failed to marshal encrypted vault: %w", err)
 	}
 
-	// Write to file with proper permissions
-	return os.WriteFile(v.path, vaultJSON, 0600)
+	// Atomic write: write to temp file in same directory, then rename
+	dir := filepath.Dir(v.path)
+	tmpFile, err := os.CreateTemp(dir, "uzp.vault.*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	// Write data to temp file
+	if _, err := tmpFile.Write(vaultJSON); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to write vault data: %w", err)
+	}
+
+	// Sync to disk before rename
+	if err := tmpFile.Sync(); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to sync vault data: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Set proper permissions before rename
+	if err := os.Chmod(tmpPath, 0600); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to set file permissions: %w", err)
+	}
+
+	// Atomic rename (POSIX guarantees atomicity for same-directory rename)
+	if err := os.Rename(tmpPath, v.path); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to save vault: %w", err)
+	}
+
+	return nil
 }
 
 // loadEncrypted loads the encrypted vault from disk
@@ -312,39 +375,6 @@ func (v *Vault) loadEncrypted() (*EncryptedVault, error) {
 	}
 
 	return &encVault, nil
-}
-
-// contains checks if str contains substr (case-insensitive)
-func contains(str, substr string) bool {
-	return len(substr) > 0 && len(str) >= len(substr) &&
-		(str == substr || containsIgnoreCase(str, substr))
-}
-
-func containsIgnoreCase(str, substr string) bool {
-	if len(substr) > len(str) {
-		return false
-	}
-
-	for i := 0; i <= len(str)-len(substr); i++ {
-		match := true
-		for j := 0; j < len(substr); j++ {
-			if toLower(str[i+j]) != toLower(substr[j]) {
-				match = false
-				break
-			}
-		}
-		if match {
-			return true
-		}
-	}
-	return false
-}
-
-func toLower(c byte) byte {
-	if c >= 'A' && c <= 'Z' {
-		return c + 32
-	}
-	return c
 }
 
 // Exists checks if vault file exists

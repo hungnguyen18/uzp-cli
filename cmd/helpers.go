@@ -18,7 +18,12 @@ func ensureVaultUnlocked() error {
 		}
 		fmt.Fprintln(os.Stderr) // New line after password
 
-		if err := vault.Unlock(string(password)); err != nil {
+		// Pass []byte directly — no string conversion to avoid unzeroable copies
+		if err := vault.Unlock(password); err != nil {
+			// Clear password from memory before returning
+			for i := range password {
+				password[i] = 0
+			}
 			return fmt.Errorf("invalid password")
 		}
 
