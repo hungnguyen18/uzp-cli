@@ -78,6 +78,7 @@ func init() {
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(importCmd)
+	rootCmd.AddCommand(mcpCmd)
 }
 
 // Execute runs the root command
