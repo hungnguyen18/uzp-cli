@@ -57,7 +57,10 @@ A professional command-line tool for securely storing and managing sensitive inf
 ## Installation
 
 ```bash
-# NPM (Recommended)
+# Homebrew (macOS/Linux)
+brew install hungnguyen18/tap/uzp-cli
+
+# NPM
 npm install -g uzp-cli
 
 # Alternative package managers
@@ -68,9 +71,6 @@ bun add -g uzp-cli         # Bun
 # Manual installation
 git clone https://github.com/hungnguyen18/uzp-cli.git
 cd uzp-cli && go build -o uzp
-
-# NPM Registry Configuration (if needed)
-cp .npmrc.example .npmrc   # Edit for custom registries
 ```
 
 ## Quick Start

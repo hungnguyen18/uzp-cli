@@ -254,6 +254,88 @@ jobs:
           git commit -m "docs: update CHANGELOG.md for v${VERSION}"
           git push origin main
 
+  update-homebrew:
+    runs-on: ubuntu-latest
+    needs: [authorization-check, build-binaries, create-release]
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: uzp-binaries
+          path: build/
+
+      - name: Calculate SHA256 hashes
+        id: hashes
+        run: |
+          echo "darwin_arm64=$(sha256sum build/uzp-darwin-arm64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_amd64=$(sha256sum build/uzp-darwin-amd64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$(sha256sum build/uzp-linux-arm64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "linux_amd64=$(sha256sum build/uzp-linux-amd64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.build-binaries.outputs.version }}
+          SHA_DARWIN_ARM64: ${{ steps.hashes.outputs.darwin_arm64 }}
+          SHA_DARWIN_AMD64: ${{ steps.hashes.outputs.darwin_amd64 }}
+          SHA_LINUX_ARM64: ${{ steps.hashes.outputs.linux_arm64 }}
+          SHA_LINUX_AMD64: ${{ steps.hashes.outputs.linux_amd64 }}
+        run: |
+          cat > /tmp/uzp-cli.rb << FORMULA
+          class UzpCli < Formula
+            desc "Secure CLI tool for managing secrets locally with AES-256-GCM encryption"
+            homepage "https://github.com/hungnguyen18/uzp-cli"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/hungnguyen18/uzp-cli/releases/download/v#{version}/uzp-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/hungnguyen18/uzp-cli/releases/download/v#{version}/uzp-darwin-amd64"
+                sha256 "${SHA_DARWIN_AMD64}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/hungnguyen18/uzp-cli/releases/download/v#{version}/uzp-linux-arm64"
+                sha256 "${SHA_LINUX_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/hungnguyen18/uzp-cli/releases/download/v#{version}/uzp-linux-amd64"
+                sha256 "${SHA_LINUX_AMD64}"
+              end
+            end
+
+            def install
+              binary = Dir["uzp-*"].first
+              bin.install binary => "uzp"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/uzp -v")
+            end
+          end
+          FORMULA
+
+          # Remove leading whitespace from heredoc indentation
+          sed -i 's/^          //' /tmp/uzp-cli.rb
+
+          # Clone and update homebrew-tap
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/hungnguyen18/homebrew-tap.git" /tmp/homebrew-tap
+          cp /tmp/uzp-cli.rb /tmp/homebrew-tap/Formula/uzp-cli.rb
+
+          cd /tmp/homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/uzp-cli.rb
+          git diff --cached --quiet && echo "No formula changes" && exit 0
+          git commit -m "Update uzp-cli to v${VERSION}"
+          git push origin main
+
   publish-npm:
     needs: [authorization-check, build-binaries, create-release]
     uses: ./.github/workflows/publish-package.yml
@@ -264,7 +346,7 @@ jobs:
 
   summary:
     runs-on: ubuntu-latest
-    needs: [authorization-check, build-binaries, create-release, publish-npm]
+    needs: [authorization-check, build-binaries, create-release, publish-npm, update-homebrew]
     if: always() && needs.authorization-check.result == 'success'
     steps:
       - name: Release Summary
@@ -294,10 +376,17 @@ jobs:
             echo "| 📡 NPM Publish | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
           fi
           
+          if [ "${{ needs.update-homebrew.result }}" = "success" ]; then
+            echo "| 🍺 Homebrew Tap | ✅ Updated | [Formula](https://github.com/hungnguyen18/homebrew-tap) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🍺 Homebrew Tap | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Installation" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "npm install -g uzp-cli@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "brew install hungnguyen18/tap/uzp-cli  # Homebrew" >> $GITHUB_STEP_SUMMARY
+          echo "npm install -g uzp-cli@$VERSION        # NPM" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
