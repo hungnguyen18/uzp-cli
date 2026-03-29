@@ -136,7 +136,8 @@ func (s *Server) toolSearch(argsRaw json.RawMessage) (string, error) {
 	return string(data), nil
 }
 
-// promptUserApproval asks the user on stderr whether to allow access.
+// promptUserApproval asks the user whether to allow access.
+// Reads from /dev/tty since MCP uses stdin/stdout for JSON-RPC.
 func promptUserApproval(project, key string) bool {
 	if key != "" {
 		fmt.Fprintf(os.Stderr, "MCP agent requests access to '%s/%s'. Allow? [y/N]: ", project, key)
@@ -144,8 +145,18 @@ func promptUserApproval(project, key string) bool {
 		fmt.Fprintf(os.Stderr, "MCP agent requests access to project '%s'. Allow? [y/N]: ", project)
 	}
 
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		// Fallback: deny if no TTY available (non-interactive environment)
+		fmt.Fprintln(os.Stderr, "n (no TTY available)")
+		return false
+	}
+	defer tty.Close()
+
 	var response string
-	fmt.Fscanln(os.Stderr, &response)
+	if _, err := fmt.Fscanln(tty, &response); err != nil {
+		return false
+	}
 
 	return response == "y" || response == "Y" || response == "yes"
 }
