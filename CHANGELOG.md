@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.2.0](https://github.com/hungnguyen18/uzp-cli/releases/tag/v1.2.0) — 2026-03-29
+
+### Added
+- feat: add template, diff, audit, backup/restore, rotate commands
+
+### Fixed
+- fix: handle errcheck lint for MCP prompt, read from /dev/tty instead of stderr
+
+### Other
+- docs: update README with v1.1.0 features (run, import, mcp) and changelog section
+- docs: update CHANGELOG.md for v1.1.0
+
 ## [v1.1.0](https://github.com/hungnguyen18/uzp-cli/releases/tag/v1.1.0) — 2026-03-28
 
 ### Added
