@@ -32,15 +32,22 @@ BASIC USAGE:
   uzp get project/key         Get secret value
   uzp update project/key      Update secret
   uzp inject -p project       Export as environment variables
-  uzp run -p project -- cmd    Run command with secrets injected
-  uzp import .env -p project   Import from .env file
-  uzp mcp                       Start MCP server for AI agents
+  uzp run -p project -- cmd   Run command with secrets injected
+  uzp import .env -p project  Import from .env file
+  uzp mcp                     Start MCP server for AI agents
+  uzp template -p project     Generate .env.example (keys only)
+  uzp diff proj1 proj2        Compare secrets between projects
+  uzp audit                   Health check vault secrets
+  uzp backup                  Backup encrypted vault
+  uzp restore file.bak        Restore vault from backup
+  uzp rotate check            Check secret rotation status
 
 EXAMPLES:
-  uzp inject -p myapp > .env  Export secrets to .env file
-  uzp copy myapp/api_key      Copy secret to clipboard
-  uzp search database         Search for secrets
-  uzp run -p myapp -- npm start Run with injected secrets
+  uzp inject -p myapp > .env           Export secrets to .env file
+  uzp copy myapp/api_key               Copy secret to clipboard
+  uzp template -p myapp > .env.example Generate .env.example
+  uzp diff staging prod                Compare environments
+  uzp run -p myapp -- npm start        Run with injected secrets
 
 STORAGE: ~/.uzp/uzp.vault (encrypted)`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -79,6 +86,12 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(importCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(templateCmd)
+	rootCmd.AddCommand(diffCmd)
+	rootCmd.AddCommand(auditCmd)
+	rootCmd.AddCommand(backupCmd)
+	rootCmd.AddCommand(restoreCmd)
+	rootCmd.AddCommand(rotateCmd)
 }
 
 // Execute runs the root command

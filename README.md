@@ -37,6 +37,11 @@ A professional command-line tool for securely storing and managing sensitive inf
 - 🚀 **Process secret injection** - run commands with secrets in env, no plaintext files
 - 📥 **`.env` file import** - migrate from `.env` files in one command
 - 🤖 **MCP server** - AI agent integration with scope-based access control
+- 📝 **Template generation** - auto-generate `.env.example` from vault (keys only, no values)
+- 🔀 **Secret diff** - compare secrets between projects (staging vs prod)
+- 🩺 **Vault audit** - health check for weak, empty, duplicate secrets
+- 💾 **Backup & restore** - encrypted vault backup with one command
+- 🔄 **Rotation tracking** - set rotation policies, detect overdue secrets
 - 🌍 **Cross-platform support** (macOS, Linux, Windows)
 - 🔒 **Secure file permissions** - vault files created with 0600 permissions
 
@@ -92,21 +97,27 @@ uzp run -p myapp -- npm start      # Run with secrets injected
 
 ## Commands
 
-| Command                          | Description                       | Example                         |
-| -------------------------------- | --------------------------------- | ------------------------------- |
-| `uzp init`                       | Initialize new vault              | `uzp init`                      |
-| `uzp add`                        | Add a secret                      | `uzp add`                       |
-| `uzp get <project/key>`          | Get secret value                  | `uzp get myapp/api_key`         |
-| `uzp copy <project/key>`         | Copy to clipboard                 | `uzp copy myapp/api_key`        |
-| `uzp update <project/key>`       | Update existing secret            | `uzp update myapp/api_key`      |
-| `uzp list`                       | List all secrets                  | `uzp list`                      |
-| `uzp search <keyword>`           | Search secrets                    | `uzp search api`                |
-| `uzp inject -p <project>`        | Export to .env format             | `uzp inject -p myapp > .env`    |
-| `uzp run -p <project> -- <cmd>`  | Run command with secrets injected | `uzp run -p myapp -- npm start` |
-| `uzp import <file> -p <project>` | Import secrets from .env file     | `uzp import .env -p myapp`      |
-| `uzp mcp`                        | Start MCP server for AI agents    | `uzp mcp`                       |
-| `uzp reset`                      | Delete all data                   | `uzp reset`                     |
-| `uzp -v, --version`              | Show version information          | `uzp -v`                        |
+| Command                          | Description                       | Example                                |
+| -------------------------------- | --------------------------------- | -------------------------------------- |
+| `uzp init`                       | Initialize new vault              | `uzp init`                             |
+| `uzp add`                        | Add a secret                      | `uzp add`                              |
+| `uzp get <project/key>`          | Get secret value                  | `uzp get myapp/api_key`                |
+| `uzp copy <project/key>`         | Copy to clipboard                 | `uzp copy myapp/api_key`               |
+| `uzp update <project/key>`       | Update existing secret            | `uzp update myapp/api_key`             |
+| `uzp list`                       | List all secrets                  | `uzp list`                             |
+| `uzp search <keyword>`           | Search secrets                    | `uzp search api`                       |
+| `uzp inject -p <project>`        | Export to .env format             | `uzp inject -p myapp > .env`           |
+| `uzp run -p <project> -- <cmd>`  | Run command with secrets injected | `uzp run -p myapp -- npm start`        |
+| `uzp import <file> -p <project>` | Import secrets from .env file     | `uzp import .env -p myapp`             |
+| `uzp mcp`                        | Start MCP server for AI agents    | `uzp mcp`                              |
+| `uzp template -p <project>`      | Generate .env.example (keys only) | `uzp template -p myapp > .env.example` |
+| `uzp diff <proj1> <proj2>`       | Compare secrets between projects  | `uzp diff staging prod`                |
+| `uzp audit`                      | Health check vault secrets        | `uzp audit -p myapp`                   |
+| `uzp backup`                     | Backup encrypted vault            | `uzp backup -o ~/safe/vault.bak`       |
+| `uzp restore <file>`             | Restore vault from backup         | `uzp restore vault.bak`                |
+| `uzp rotate list\|check\|set`    | Secret rotation tracking          | `uzp rotate check`                     |
+| `uzp reset`                      | Delete all data                   | `uzp reset`                            |
+| `uzp -v, --version`              | Show version information          | `uzp -v`                               |
 
 ## Security
 
@@ -236,6 +247,60 @@ Access control (`~/.uzp/access.json`):
 }
 ```
 
+### Template Generation
+
+```bash
+# Generate .env.example from vault (keys only, no values)
+uzp template -p myapp > .env.example
+
+# With comment hints based on key names
+uzp template -p myapp --comments > .env.example
+```
+
+### Compare Secrets Between Projects
+
+```bash
+# Diff staging vs production (detect missing env vars before deploy)
+uzp diff myapp-staging myapp-prod
+
+# Keys-only comparison (no value diff)
+uzp diff myapp-staging myapp-prod --keys
+```
+
+### Vault Audit
+
+```bash
+# Health check all secrets (weak, empty, duplicate detection)
+uzp audit
+
+# Audit single project
+uzp audit -p myapp
+```
+
+### Backup & Restore
+
+```bash
+# Backup encrypted vault
+uzp backup
+uzp backup -o ~/safe/vault.bak
+
+# Restore from backup (with confirmation)
+uzp restore ~/safe/vault.bak
+```
+
+### Secret Rotation Tracking
+
+```bash
+# Set rotation policy
+uzp rotate set myapp/api_key 90d
+
+# Check which secrets need rotation
+uzp rotate check
+
+# List all secrets with rotation status
+uzp rotate list
+```
+
 ## Contributing
 
 **New contributors:** Get started quickly with the [**Quick Start section**](CONTRIBUTING.md#-quick-start---get-contributing-in-5-minutes) in our Contributing Guide! ⚡
@@ -245,6 +310,15 @@ Our [Contributing Guide](CONTRIBUTING.md) covers everything from 5-minute setup 
 **Thank you for helping make UZP-CLI more secure! 🔐**
 
 ## Changelog
+
+### v1.2.0 (2026-03-29)
+
+- `uzp template` - Auto-generate `.env.example` from vault keys (with optional comment hints)
+- `uzp diff` - Compare secrets between two projects (staging vs prod)
+- `uzp audit` - Health check for weak, empty, duplicate secrets
+- `uzp backup` / `uzp restore` - Encrypted vault backup and restore
+- `uzp rotate` - Secret rotation policy tracking with overdue detection
+- `internal/rotation` package for rotation policy storage
 
 ### v1.1.0 (2026-03-29)
 

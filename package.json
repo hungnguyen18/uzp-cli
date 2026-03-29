@@ -1,6 +1,6 @@
 {
   "name": "uzp-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "User's Zecure Pocket - A secure CLI tool for managing secrets",
   "keywords": [
     "cli",

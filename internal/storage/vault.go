@@ -377,6 +377,11 @@ func (v *Vault) loadEncrypted() (*EncryptedVault, error) {
 	return &encVault, nil
 }
 
+// Path returns the vault file path
+func (v *Vault) Path() string {
+	return v.path
+}
+
 // Exists checks if vault file exists
 func (v *Vault) Exists() bool {
 	_, err := os.Stat(v.path)
